@@ -1,0 +1,166 @@
+/*
+  Programacion de sistema pokayoke frajilizado.
+*/
+// Sensor de fragilizado
+#include "Adafruit_VL53L0X.h"
+
+Adafruit_VL53L0X lox = Adafruit_VL53L0X();
+
+// Sensor de color
+#define S0 4    // S0 a pin 4
+#define S1 5    // S1 a pin 5
+#define S2 6    // S2 a pin 6
+#define S3 7    // S3 a pin 7
+#define salidaTCS 8 // salidaTCS a pin 8
+
+
+// Sensor de largo de pieza 
+
+int TRIG1 = 11;      // trigger de sensor 1 en pin 11
+int ECO1 = 10;      // echo de sensor 1 en pin 10
+int DURACION1;
+int DISTANCIA1;
+
+// Sensor de ancho de pieza 
+
+int TRIG2 = 9;      // trigger de sensor 2 en pin 9
+int ECO2 = 6;      // echo de sensor 2 en pin 6
+int DURACION2;
+int DISTANCIA2;
+
+void setup()
+{
+  /*Sensor de fragilizado*/ 
+  Serial.begin(115200);
+  while (! Serial) {
+    delay(1);
+  }
+  
+  Serial.println("Adafruit VL53L0X test");
+  if (!lox.begin()) {
+    Serial.println(F("Failed to boot VL53L0X"));
+    while(1);
+  }
+  // power 
+  Serial.println(F("VL53L0X API Simple Ranging example\n\n")); 
+
+  // Sensor de color
+  pinMode(S0, OUTPUT);    // pin 4 como salida
+  pinMode(S1, OUTPUT);    // pin 5 como salida
+  pinMode(S2, OUTPUT);    // pin 6 como salida
+  pinMode(S3, OUTPUT);    // pin 7 como salida
+  pinMode(salidaTCS, INPUT);  // pin 8 como salida
+  
+  digitalWrite(S0,HIGH);  // establece frecuencia de salida
+  digitalWrite(S1,LOW);   // del modulo al 20 por ciento
+ 
+  // Sensor de largo de pieza
+  pinMode(TRIG1, OUTPUT);  // trigger de sensor 1 como salida
+  pinMode(ECO1, INPUT);    // echo de sensor 1 como entrada
+  
+  // Sensor de ancho de pieza 
+  pinMode(TRIG2, OUTPUT);  // trigger de sensor 2 como salida
+  pinMode(ECO2, INPUT);    // echo de sensor 2 como entrada
+
+}
+
+void loop()
+{
+  
+  // Sensor de largo de pieza
+  digitalWrite(TRIG1, HIGH);     // generacion del pulso a enviar
+  delay(1);       
+  digitalWrite(TRIG1, LOW);   
+
+  DURACION1 = pulseIn(ECO1, HIGH);  // Eco de sensor 1 espera pulso
+  DISTANCIA1 = DURACION1 / 58.2;    // distancia medida en centimetros de sensor 1
+ 
+  if (DISTANCIA1 == 20 ){ // si distancia es igual a tamaño perfecto de pieza
+    Serial.println("LARGO CORRECTO");    // imprime en monitor serial largo correcto
+  }
+  else { 
+    Serial.println("LARGO INCORRECTO");    // imprime en monitor serial largo incorrecto
+  }
+
+  // Sensor de ancho de pieza 
+  digitalWrite(TRIG2, HIGH);     // generacion del pulso a enviar
+  delay(1);       
+  digitalWrite(TRIG2, LOW);   
+
+  DURACION2 = pulseIn(ECO2, HIGH);  // Eco de sensor 2 espera pulso
+  DISTANCIA2 = DURACION2 / 58.2;    // distancia medida en centimetros de sensor 2
+ 
+  if (DISTANCIA2 == 20 ){ // si distancia es igual a tamaño perfecto de pieza
+    Serial.println("ANCHO CORRECTO");    // imprime en monitor serial ancho correcto
+  }
+  else { 
+    Serial.println("ANCHO INCORRECTO");    // imprime en monitor serial ancho incorrecto
+  }
+
+  /* Sensor de fragilizado */
+  VL53L0X_RangingMeasurementData_t measure;
+    
+  Serial.print("Reading a measurement... ");
+  lox.rangingTest(&measure, false); 
+  if (measure.RangeStatus != 4) {  
+    Serial.print("Distance (mm): "); Serial.println(measure.RangeMilliMeter);
+
+int medida = measure.RangeMilliMeter;
+
+if (medida == 20) {
+  Serial.print ("Fragilizado correcto");
+}
+else {
+  Serial.print ("Fragilizado incorrecto");
+}
+
+    
+  } else {
+    Serial.println(" out of range ");
+  }
+    
+  delay(100);
+
+ /* Sensor de color */
+ digitalWrite(S2,LOW);     // establece fotodiodos
+  digitalWrite(S3,LOW);     // con filtro rojo
+  int rojo = pulseIn(salidaTCS, LOW); // obtiene duracion de pulso de salida del sensor
+  delay(200);       // demora de 200 mseg
+  
+  digitalWrite(S2,HIGH);    // establece fotodiodos
+  digitalWrite(S3,HIGH);    // con filtro verde
+  int verde = pulseIn(salidaTCS, LOW);  // obtiene duracion de pulso de salida del sensor
+  delay(200);       // demora de 200 mseg
+  
+  digitalWrite(S2,LOW);     // establece fotodiodos
+  digitalWrite(S3,HIGH);    // con filtro azul
+  int azul = pulseIn(salidaTCS, LOW); // obtiene duracion de pulso de salida del sensor
+  delay(200);       // demora de 200 mseg
+  
+  Serial.print("R:");     // muestra texto
+  Serial.print(rojo);     // muestra valor de variable rojo
+
+  Serial.print("\t");     // espacio de tabulacion
+
+  Serial.print("V:");     // muestra texto
+  Serial.print(verde);      // muestra valor de variable verde
+
+  Serial.print("\t");     // espacio de tabulacion
+
+  Serial.print("A:");     // muestra texto
+  Serial.println(azul);     // muestra valor de variable azul
+            // y salto de linea
+  
+  if ( rojo < 150 && verde > 300 && azul > 60){   // si valores dentro del rango
+    Serial.println("ROJO");       // muestra texto
+  } 
+    else if ( verde < 300 && rojo > 300 && azul > 80){  // si valores dentro del rango
+    Serial.println("VERDE");        // muestra texto
+  }
+    else if ( azul < 50 && rojo > 200 && verde > 100){  // si valores dentrol del rango
+    Serial.println("AZUL");       // muestra texto
+  }
+
+  
+
+    }
